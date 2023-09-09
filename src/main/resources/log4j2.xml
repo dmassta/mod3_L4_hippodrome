@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+    <Appenders>
+        <RollingFile name="RollingFile"
+                     fileName="logs/hippodrome.log"
+                     filePattern="logs/hippodrome-%d{yyyy-MM-dd}.log"
+                     ignoreExceptions="false">
+            <PatternLayout>
+                <pattern>%d{DEFAULT} %p %c{1}: %m%n</pattern>
+            </PatternLayout>
+            <DefaultRolloverStrategy max="7">
+                <Delete basePath="${baseDir}/logs" maxDepth="7">
+                    <IfFileName glob="*/hippodrome-*.log"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>  <!-- сработает, если начнутся новые сутки (поменяется текущая дата)-->
+                <SizeBasedTriggeringPolicy size="25MB"/> <!-- сработает, если размер файла достигнет 25Мб-->
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="ALL">
+            <AppenderRef ref="RollingFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

@@ -11,6 +11,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -24,12 +25,12 @@ class HippodromeTest {
     @DisplayName("Constructor tests")
     class HippodromeConstructorTest {
 
-        @ParameterizedTest(name = "{index} - {0} argument is null")
+        @ParameterizedTest(name = "{index} - {0} list is null")
         @NullSource
         @DisplayName("check thrown exception and message if constructor argument is null")
-        void nullHorsesConstructor(List testHorses) {
+        void nullHorsesConstructor(List nullList) {
             IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
-                    Mockito.mock(new Hippodrome(testHorses)));
+                    Mockito.mock(new Hippodrome(nullList)));
             assertEquals("Horses cannot be null.", thrown.getMessage());
         }
 
@@ -42,7 +43,6 @@ class HippodromeTest {
             assertEquals("Horses cannot be empty.", thrown.getMessage());
         }
     }
-
 
     @Nested
     @DisplayName("Methods tests")
@@ -62,7 +62,7 @@ class HippodromeTest {
         @DisplayName("check if constructor argument is equal to getHorses() return")
         void getHorses() {
             var testList = initHorses(30);
-            Hippodrome testHippodrome = Mockito.spy(new Hippodrome(testList));
+            Hippodrome testHippodrome = new Hippodrome(testList);
 
             assertEquals(testList, testHippodrome.getHorses());
         }
@@ -71,19 +71,21 @@ class HippodromeTest {
         @DisplayName("check if all horses move()")
         void move() {
             var testList = initHorses(50);
-            Hippodrome testHippodrome = Mockito.spy(new Hippodrome(testList));
+            Hippodrome testHippodrome = new Hippodrome(testList);
 
             testHippodrome.move();
-            verify(testHippodrome).move();
+
+            testList.forEach(horse -> verify(horse).move());
         }
 
         @Test
         @DisplayName("check if getWinner() returns the Horse with max distance")
         void getWinner() {
             var testList = initHorses(5);
-            Hippodrome testHippodrome = Mockito.spy(new Hippodrome(testList));
+            Hippodrome testHippodrome = new Hippodrome(testList);
 
             testHippodrome.move();
+
             var winner = testList.stream()
                     .max(Comparator.comparing(Horse::getDistance))
                     .get();

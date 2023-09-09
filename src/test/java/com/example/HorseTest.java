@@ -6,14 +6,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import java.lang.reflect.Field;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class HorseTest {
@@ -44,20 +45,20 @@ class HorseTest {
         }
 
         @ParameterizedTest(name = "{index} - {0} cannot be speed")
-        @ValueSource(doubles = {-1.7})
+        @ValueSource(doubles = {-1.7, -259305, -0.000005})
         @DisplayName("check thrown exception and exception.message when speed is negative")
         void speedIsNegative_HorseConstructor(double speed) {
-            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
-                    Mockito.spy(new Horse("Plotva", speed,25)));
+            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                    () -> Mockito.spy(new Horse("Plotva", speed,25)));
             assertEquals("Speed cannot be negative.", thrown.getMessage());
         }
 
         @ParameterizedTest(name = "{index} - {0} cannot be distance")
-        @ValueSource(doubles = {-8.5})
+        @ValueSource(doubles = {-1.7, -259305, -0.000005})
         @DisplayName("check thrown exception and exception.message when distance is negative")
         void distanceIsNegative_HorseConstructor(double distance) {
-            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
-                    Mockito.spy(new Horse("Plotva", 0,distance)));
+            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                    () -> Mockito.spy(new Horse("Plotva", 0, distance)));
             assertEquals("Distance cannot be negative.", thrown.getMessage());
         }
     }
@@ -68,21 +69,47 @@ class HorseTest {
 
         @Test
         @DisplayName("check if getName() returns the exact value of the name field")
-        void getName() {
-            assertEquals("Plotva", spyHorse.getName());
+        void getExactName() {
+            try {
+                Field field = Horse.class.getDeclaredField("name");
+                field.setAccessible(true);
+                String name = (String) field.get(spyHorse);
+
+                assertEquals("Plotva", name);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
 
         @Test
         @DisplayName("check if getSpeed() returns the exact value of the speed field")
-        void getSpeed() {
-            assertEquals(5, spyHorse.getSpeed());
+        void getExactSpeed() {
+            try {
+                Field field = Horse.class.getDeclaredField("speed");
+                field.setAccessible(true);
+                double speed = (double) field.get(spyHorse);
+
+                assertEquals(5, speed);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
 
         @Test
-        @DisplayName("check if getDistance() returns the exact value of the distance field")
-        void getDistance() {
+        @DisplayName("check if getDistance() returns the exact value of the distance field " +
+                "or 0 if constructor with 2 parameters")
+        void getExactDistance() {
             Horse testHorse = new Horse("name", 7, 450);
-            assertEquals(450, testHorse.getDistance());
+            try {
+                Field field = Horse.class.getDeclaredField("distance");
+                field.setAccessible(true);
+                double distance = (double) field.get(testHorse);
+
+                assertEquals(450, distance);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
             assertEquals(0, spyHorse.getDistance());
         }
 
@@ -90,18 +117,24 @@ class HorseTest {
         @CsvSource({
                 "0.2, 0.9"
         })
-        @DisplayName("check if move() invokes inner method getRandomDouble()")
-        void move(double x, double y) {//                                               не доделан
-            spyHorse.move();
-            verify(spyHorse).getRandomDouble(x, y);
+        @DisplayName("check if move() invokes inner method getRandomDouble() and uses correct algorithm")
+        void moveUses_getRandomDouble(double x, double y) {
 
-            when(Horse.getRandomDouble(x, y)).thenAnswer(i -> (Math.random() * (y - x)) + x);
+            try (MockedStatic<Horse> mocked = mockStatic(Horse.class)) {
+                spyHorse.move();
+                mocked.verify(() -> Horse.getRandomDouble(x, y));
 
-//            assertEquals(distance, spyHorse.move());
-        }
+                Horse testHorse = new Horse("plotva", 5, 25);
+                double random = 0.7;
+                double distance = testHorse.getDistance() + (testHorse.getSpeed() * random);
+                mocked.when(() -> Horse.getRandomDouble(x, y)).thenReturn(random);
 
-        @Test
-        void getRandomDouble() {
+                testHorse.move();
+
+                assertEquals(distance, testHorse.getDistance());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
